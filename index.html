@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>配送案件 収支シミュレーション</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #1a212b;
+    --panel-2: #232c38;
+    --border: #2d3846;
+    --text: #e8eef5;
+    --text-dim: #8a96a6;
+    --accent: #4ade80;
+    --danger: #f87171;
+    --highlight: #fbbf24;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+    line-height: 1.5;
+  }
+  .container {
+    max-width: 980px;
+    margin: 0 auto;
+  }
+  header {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--border);
+  }
+  .header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  h1 {
+    font-size: 26px;
+    margin: 0 0 4px 0;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+  .reset-btn {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 7px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+  }
+  .reset-btn:hover { color: var(--text); border-color: var(--text-dim); }
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0;
+  }
+  .tab {
+    background: transparent;
+    color: var(--text-dim);
+    border: none;
+    padding: 11px 20px;
+    font-size: 15px;
+    font-family: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    display: flex;
+    flex-direction: column;
+  }
+  .card-header {
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .card-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+    color: var(--accent);
+  }
+  .card-hours {
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .card-note {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 1fr 140px 160px;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 0;
+    font-size: 15px;
+  }
+  .row.head {
+    color: var(--text-dim);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding-bottom: 6px;
+    border-bottom: 1px dashed var(--border);
+    margin-bottom: 4px;
+  }
+  .row.head > div:nth-child(2),
+  .row.head > div:nth-child(3) { text-align: right; }
+  .label { color: var(--text); }
+  input[type="number"] {
+    width: 100%;
+    padding: 7px 10px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    font-size: 14px;
+    text-align: right;
+    font-family: inherit;
+    -moz-appearance: textfield;
+  }
+  input[type="number"]:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: #1f2935;
+  }
+  input::-webkit-outer-spin-button,
+  input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .calc {
+    text-align: right;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    font-size: 15px;
+  }
+  .calc.deduct { color: var(--danger); }
+  .calc.add { color: var(--accent); font-weight: 600; }
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 10px 0;
+  }
+  .subtotal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    font-size: 14px;
+    color: var(--text-dim);
+  }
+  .subtotal-value {
+    font-weight: 600;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    font-size: 16px;
+  }
+  .total {
+    margin-top: 18px;
+    padding: 18px 0 6px;
+    border-top: 2px solid var(--accent);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .total-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .total-value {
+    font-size: 38px;
+    font-weight: 800;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+  }
+  .yen { font-size: 20px; margin-left: 4px; color: var(--text-dim); }
+  .invoice-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: var(--panel-2);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  .invoice-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-right: auto;
+  }
+  .toggle {
+    display: inline-flex;
+    background: var(--bg);
+    border-radius: 5px;
+    padding: 3px;
+    border: 1px solid var(--border);
+  }
+  .toggle button {
+    background: transparent;
+    color: var(--text-dim);
+    border: none;
+    padding: 6px 14px;
+    font-size: 12.5px;
+    cursor: pointer;
+    border-radius: 3px;
+    font-family: inherit;
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+  .toggle button.active {
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 700;
+  }
+  .toggle.warn button.active {
+    background: var(--highlight);
+    color: var(--bg);
+  }
+  .invoice-note {
+    font-size: 12px;
+    color: var(--highlight);
+    margin-top: 6px;
+    padding: 0 2px;
+    min-height: 16px;
+  }
+  .rocket-section {
+    background: var(--panel-2);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 8px 0;
+  }
+  .rocket-section-title {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--highlight);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  @media (max-width: 768px) {
+    body { padding: 12px; }
+    .card { padding: 18px 16px; }
+    .row { grid-template-columns: 1fr 100px 120px; gap: 8px; font-size: 13px; }
+    .total-value { font-size: 28px; }
+    .tab { padding: 9px 14px; font-size: 13px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="header-row">
+      <div>
+        <h1>配送案件 収支シミュレーション</h1>
+        <div class="subtitle">数値を入力するとリアルタイムで振込金額が反映されます</div>
+      </div>
+      <button class="reset-btn" onclick="resetAll()">初期値に戻す</button>
+    </div>
+  </header>
+  <nav class="tabs" id="tabs"></nav>
+  <div id="cardArea"></div>
+</div>
+<script>
+const cases = [
+  { id: 'sagawa', title: '佐川', hours: '7:30〜20:00', mode: 'piece', unit: 177, count: 150, days: 24, royalty: 15, invoice_registered: true, fees: { vehicle: 30000, maint: 5500, ins: 30000, admin: 10000, rosai: 1500, kamotsu: 2000 } },
+  { id: 'yamato', title: 'ヤマト', hours: '7:30〜20:00', mode: 'piece', unit: 180, count: 150, days: 22, royalty: 15, invoice_registered: true, fees: { vehicle: 30000, maint: 5500, ins: 30000, admin: 10000, rosai: 2000, kamotsu: 1500 } },
+  { id: 'askul', title: 'アスクル', hours: '6:30〜16:00 or 18:00', mode: 'daily', daily: 25000, days: 22, royalty: 15, invoice_registered: true, fees: { vehicle: 30000, maint: 5500, ins: 30000, admin: 10000, rosai: 1500, kamotsu: 2000 } },
+  { id: 'amazon', title: 'Amazon', hours: '9:00〜19:00', note: '9:00-12:30 Amazon / 13:00-15:10 hub / 15:30-19:00 Amazon / 19:30-22:00 hub', mode: 'daily', daily: 30000, days: 22, royalty: 15, invoice_registered: true, fees: { vehicle: 30000, maint: 5500, ins: 30000, admin: 10000, rosai: 1500, kamotsu: 2000 } },
+  { id: 'sagawa_night', title: '佐川ナイト配', hours: '17:00〜20:00', mode: 'piece', unit: 90, count: 30, days: 22, royalty: 15, invoice_registered: true, fees: { vehicle: 30000, maint: 5500, ins: 30000, admin: 10000, rosai: 1500, kamotsu: 2000 } },
+  { id: 'amazon_hub', title: 'Amazon hub', hours: '〜23:59', mode: 'daily', daily: 5000, days: 22, royalty: 0, invoice_registered: true, fees: { vehicle: 0, maint: 0, ins: 0, admin: 0, rosai: 0, kamotsu: 0 } },
+  { id: 'rocket', title: 'ロケットナウ', hours: '11:00〜15:00 / 17:00〜21:00', mode: 'rocket', cycle1_base: 3500, cycle1_count: 14, cycle1_unit: 880, cycle1_threshold: 14, cycle2_base: 3500, cycle2_count: 35, cycle2_unit: 880, cycle2_threshold: 14, bonus: 2000, days: 22, royalty: 15, invoice_registered: true, fees: { vehicle: 30000, maint: 5500, ins: 30000, admin: 10000, rosai: 1500, kamotsu: 2000 } }
+];
+const feeLabels = { vehicle: '車両代', maint: 'メンテナンスパック', ins: '任意保険', admin: '事務手数料', rosai: '労災保険', kamotsu: '貨物保険' };
+const defaults = JSON.parse(JSON.stringify(cases));
+let activeId = cases[0].id;
+const fmt = n => Math.round(n).toLocaleString('ja-JP');
+
+function buildTabs() {
+  const tabs = document.getElementById('tabs');
+  tabs.innerHTML = '';
+  cases.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'tab' + (c.id === activeId ? ' active' : '');
+    btn.textContent = c.title;
+    btn.onclick = () => { activeId = c.id; render(); };
+    tabs.appendChild(btn);
+  });
+}
+
+function buildCard(c) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.id = 'card-' + c.id;
+  const noteHtml = c.note ? `<div class="card-note">${c.note}</div>` : '';
+  let inputsHtml = '';
+  if (c.mode === 'piece') {
+    inputsHtml = `
+      <div class="row head"><div>項目</div><div>単価/個数</div><div>金額</div></div>
+      <div class="row"><div class="label">単価(円/個・税込)</div><div><input type="number" data-case="${c.id}" data-field="unit" value="${c.unit}"></div><div class="calc">—</div></div>
+      <div class="row"><div class="label">1日の配完個数</div><div><input type="number" data-case="${c.id}" data-field="count" value="${c.count}"></div><div class="calc" id="${c.id}-perday">—</div></div>
+      <div class="row"><div class="label">稼働日数</div><div><input type="number" data-case="${c.id}" data-field="days" value="${c.days}"></div><div class="calc add" id="${c.id}-gross">—</div></div>`;
+  } else if (c.mode === 'daily') {
+    inputsHtml = `
+      <div class="row head"><div>項目</div><div>日当/日数</div><div>金額</div></div>
+      <div class="row"><div class="label">日当(円・税込)</div><div><input type="number" data-case="${c.id}" data-field="daily" value="${c.daily}"></div><div class="calc">—</div></div>
+      <div class="row"><div class="label">稼働日数</div><div><input type="number" data-case="${c.id}" data-field="days" value="${c.days}"></div><div class="calc add" id="${c.id}-gross">—</div></div>`;
+  } else if (c.mode === 'rocket') {
+    inputsHtml = `
+      <div class="rocket-section"><div class="rocket-section-title">サイクル① 11:00〜15:00</div>
+        <div class="row"><div class="label">基本料(円/日)</div><div><input type="number" data-case="${c.id}" data-field="cycle1_base" value="${c.cycle1_base}"></div><div class="calc">—</div></div>
+        <div class="row"><div class="label">件数(件/日)</div><div><input type="number" data-case="${c.id}" data-field="cycle1_count" value="${c.cycle1_count}"></div><div class="calc">—</div></div>
+        <div class="row"><div class="label">超過単価(円/件)</div><div><input type="number" data-case="${c.id}" data-field="cycle1_unit" value="${c.cycle1_unit}"></div><div class="calc">—</div></div>
+        <div class="row"><div class="label">基本料込み件数</div><div><input type="number" data-case="${c.id}" data-field="cycle1_threshold" value="${c.cycle1_threshold}"></div><div class="calc" id="${c.id}-c1day">—</div></div>
+      </div>
+      <div class="rocket-section"><div class="rocket-section-title">サイクル② 17:00〜21:00</div>
+        <div class="row"><div class="label">基本料(円/日)</div><div><input type="number" data-case="${c.id}" data-field="cycle2_base" value="${c.cycle2_base}"></div><div class="calc">—</div></div>
+        <div class="row"><div class="label">件数(件/日)</div><div><input type="number" data-case="${c.id}" data-field="cycle2_count" value="${c.cycle2_count}"></div><div class="calc">—</div></div>
+        <div class="row"><div class="label">超過単価(円/件)</div><div><input type="number" data-case="${c.id}" data-field="cycle2_unit" value="${c.cycle2_unit}"></div><div class="calc">—</div></div>
+        <div class="row"><div class="label">基本料込み件数</div><div><input type="number" data-case="${c.id}" data-field="cycle2_threshold" value="${c.cycle2_threshold}"></div><div class="calc" id="${c.id}-c2day">—</div></div>
+      </div>
+      <div class="row"><div class="label">達成ボーナス(円/サイクル)</div><div><input type="number" data-case="${c.id}" data-field="bonus" value="${c.bonus}"></div><div class="calc" id="${c.id}-bonusday">—</div></div>
+      <div class="row"><div class="label">稼働日数</div><div><input type="number" data-case="${c.id}" data-field="days" value="${c.days}"></div><div class="calc add" id="${c.id}-gross">—</div></div>`;
+  }
+  const feesHtml = Object.keys(feeLabels).map(k => `
+    <div class="row"><div class="label">${feeLabels[k]}</div><div><input type="number" data-case="${c.id}" data-field="fees.${k}" value="${c.fees[k]}"></div><div class="calc deduct">−¥${fmt(c.fees[k])}</div></div>`).join('');
+  card.innerHTML = `
+    <div class="card-header">
+      <div class="card-title">${c.title}</div>
+      <div class="card-hours">${c.hours}</div>
+      ${noteHtml}
+      <div class="invoice-bar">
+        <span class="invoice-label">インボイス</span>
+        <div class="toggle ${c.invoice_registered ? '' : 'warn'}" data-case="${c.id}">
+          <button class="${c.invoice_registered ? 'active' : ''}" data-invoice="true">登録あり</button>
+          <button class="${c.invoice_registered ? '' : 'active'}" data-invoice="false">登録なし</button>
+        </div>
+      </div>
+      <div class="invoice-note" id="${c.id}-invoice-note"></div>
+    </div>
+    ${inputsHtml}
+    <div class="subtotal"><span>売上合計</span><span class="subtotal-value" id="${c.id}-revenue">—</span></div>
+    <div class="row"><div class="label">ロイヤリティ(%)</div><div><input type="number" data-case="${c.id}" data-field="royalty" value="${c.royalty}" step="0.1"></div><div class="calc deduct" id="${c.id}-royalty-amt">—</div></div>
+    <div class="subtotal"><span>ロイヤリティ調整後</span><span class="subtotal-value" id="${c.id}-after-royalty">—</span></div>
+    <div class="row" id="${c.id}-invoice-row" style="display:none;"><div class="label">インボイス未登録控除</div><div style="text-align:right;color:var(--text-dim);font-size:13px;">2%</div><div class="calc deduct" id="${c.id}-invoice-amt">—</div></div>
+    <div class="divider"></div>
+    ${feesHtml}
+    <div class="total"><span class="total-label">稼働合計金額</span><span class="total-value" id="${c.id}-total">¥0<span class="yen"></span></span></div>`;
+  return card;
+}
+
+function calc(c) {
+  let revenue = 0;
+  if (c.mode === 'piece') {
+    revenue = c.unit * c.count * c.days;
+    document.getElementById(c.id + '-perday').textContent = '¥' + fmt(c.unit * c.count);
+    document.getElementById(c.id + '-gross').textContent = '¥' + fmt(revenue);
+  } else if (c.mode === 'daily') {
+    revenue = c.daily * c.days;
+    document.getElementById(c.id + '-gross').textContent = '¥' + fmt(revenue);
+  } else if (c.mode === 'rocket') {
+    const c1extra = Math.max(0, c.cycle1_count - c.cycle1_threshold) * c.cycle1_unit;
+    const c1day = c.cycle1_base + c1extra;
+    const c2extra = Math.max(0, c.cycle2_count - c.cycle2_threshold) * c.cycle2_unit;
+    const c2day = c.cycle2_base + c2extra;
+    const bonusDay = c.bonus * 2;
+    const perDay = c1day + c2day + bonusDay;
+    revenue = perDay * c.days;
+    document.getElementById(c.id + '-c1day').textContent = '¥' + fmt(c1day) + '/日';
+    document.getElementById(c.id + '-c2day').textContent = '¥' + fmt(c2day) + '/日';
+    document.getElementById(c.id + '-bonusday').textContent = '¥' + fmt(bonusDay) + '/日';
+    document.getElementById(c.id + '-gross').textContent = '¥' + fmt(revenue);
+  }
+  document.getElementById(c.id + '-revenue').textContent = '¥' + fmt(revenue);
+  const royaltyAmt = revenue * (c.royalty / 100);
+  document.getElementById(c.id + '-royalty-amt').textContent = '−¥' + fmt(royaltyAmt);
+  const afterRoyalty = revenue - royaltyAmt;
+  document.getElementById(c.id + '-after-royalty').textContent = '¥' + fmt(afterRoyalty);
+  const invoiceRow = document.getElementById(c.id + '-invoice-row');
+  const invoiceNote = document.getElementById(c.id + '-invoice-note');
+  let invoiceDeduction = 0;
+  if (!c.invoice_registered) {
+    invoiceDeduction = afterRoyalty * 0.02;
+    invoiceRow.style.display = 'grid';
+    document.getElementById(c.id + '-invoice-amt').textContent = '−¥' + fmt(invoiceDeduction);
+    invoiceNote.textContent = '⚠ インボイス未登録のため 2% を控除';
+  } else {
+    invoiceRow.style.display = 'none';
+    invoiceNote.textContent = '';
+  }
+  Object.keys(feeLabels).forEach(k => {
+    const el = document.querySelector(`#card-${c.id} input[data-field="fees.${k}"]`);
+    if (el) {
+      const display = el.parentElement.nextElementSibling;
+      if (display) display.textContent = '−¥' + fmt(c.fees[k]);
+    }
+  });
+  const feeSum = Object.values(c.fees).reduce((a, b) => a + b, 0);
+  const total = afterRoyalty - invoiceDeduction - feeSum;
+  document.getElementById(c.id + '-total').innerHTML = '¥' + fmt(total) + '<span class="yen"></span>';
+}
+
+function handleInput(e) {
+  const id = e.target.dataset.case;
+  const field = e.target.dataset.field;
+  const val = parseFloat(e.target.value) || 0;
+  const c = cases.find(x => x.id === id);
+  if (!c) return;
+  if (field.startsWith('fees.')) {
+    const key = field.split('.')[1];
+    c.fees[key] = val;
+  } else {
+    c[field] = val;
+  }
+  calc(c);
+}
+
+function handleInvoiceToggle(e) {
+  if (!e.target.dataset.invoice) return;
+  const toggle = e.target.closest('.toggle');
+  const id = toggle.dataset.case;
+  const newVal = e.target.dataset.invoice === 'true';
+  const c = cases.find(x => x.id === id);
+  if (!c) return;
+  c.invoice_registered = newVal;
+  toggle.querySelectorAll('button').forEach(b => {
+    b.classList.toggle('active', b.dataset.invoice === String(newVal));
+  });
+  toggle.classList.toggle('warn', !newVal);
+  calc(c);
+}
+
+function resetAll() {
+  for (let i = 0; i < cases.length; i++) {
+    Object.assign(cases[i], JSON.parse(JSON.stringify(defaults[i])));
+  }
+  render();
+}
+
+function render() {
+  buildTabs();
+  const area = document.getElementById('cardArea');
+  area.innerHTML = '';
+  const c = cases.find(x => x.id === activeId);
+  area.appendChild(buildCard(c));
+  area.querySelectorAll('input[type="number"]').forEach(inp => inp.addEventListener('input', handleInput));
+  area.querySelectorAll('.toggle').forEach(t => t.addEventListener('click', handleInvoiceToggle));
+  calc(c);
+}
+
+render();
+</script>
+</body>
+</html>
