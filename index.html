@@ -63,6 +63,11 @@
   .invoice-note { font-size: 12px; color: var(--highlight); margin-top: 6px; padding: 0 2px; min-height: 16px; }
   .rocket-section { background: var(--panel-2); border-radius: 6px; padding: 12px 16px; margin: 8px 0; }
   .rocket-section-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--highlight); margin-bottom: 8px; font-weight: 600; }
+  .block-sel { display: flex; gap: 6px; background: var(--bg); border-radius: 6px; padding: 4px; border: 1px solid var(--border); }
+  .block-sel button { flex: 1; background: transparent; color: var(--text-dim); border: none; padding: 9px 10px; font-size: 13px; cursor: pointer; border-radius: 4px; font-family: inherit; font-weight: 600; transition: all .15s; }
+  .block-sel button.active { background: var(--highlight); color: var(--bg); }
+  .rocket-daysum { display: flex; justify-content: space-between; align-items: center; margin: 12px 0 4px; padding: 12px 16px; background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.3); border-radius: 6px; font-size: 14px; font-weight: 600; }
+  .rocket-daysum span:last-child { font-size: 20px; color: var(--highlight); font-variant-numeric: tabular-nums; }
 
   /* === Admin overlay === */
   .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 1000; overflow: auto; padding: 40px 16px; }
@@ -163,7 +168,8 @@
 <script>
 const ADMIN_PW  = 'cario2026';
 const AUTHED_KEY = 'sim_admin_authed';
-const STORE_KEY  = 'simulator_cases_v2';
+const STORE_KEY  = 'simulator_cases_v3';
+const OLD_STORE_KEY = 'simulator_cases_v2';
 
 const DEFAULT_CASES = [
   { id:'sagawa',      title:'佐川',         hours:'7:30〜20:00',             mode:'piece', unit:177,   count:150, days:24, royalty:15, invoice_registered:true, fees:{vehicle:30000,maint:5500,ins:30000,admin:10000,rosai:1500,kamotsu:2000} },
@@ -172,13 +178,34 @@ const DEFAULT_CASES = [
   { id:'amazon',      title:'Amazon',       hours:'9:00〜19:00',             mode:'daily', daily:30000,          days:22, royalty:15, invoice_registered:true, fees:{vehicle:30000,maint:5500,ins:30000,admin:10000,rosai:1500,kamotsu:2000}, note:'9:00-12:30 Amazon / 13:00-15:10 hub / 15:30-19:00 Amazon / 19:30-22:00 hub' },
   { id:'sagawa_night',title:'佐川ナイト配',  hours:'17:00〜20:00',            mode:'piece', unit:90,    count:30,  days:22, royalty:15, invoice_registered:true, fees:{vehicle:30000,maint:5500,ins:30000,admin:10000,rosai:1500,kamotsu:2000} },
   { id:'amazon_hub',  title:'Amazon hub',   hours:'〜23:59',                 mode:'daily', daily:5000,           days:22, royalty:0,  invoice_registered:true, fees:{vehicle:0,maint:0,ins:0,admin:0,rosai:0,kamotsu:0} },
-  { id:'rocket',      title:'ロケットナウ',  hours:'11:00〜15:00 / 17:00〜21:00', mode:'rocket', cycle1_base:3500,cycle1_count:14,cycle1_unit:880,cycle1_threshold:14, cycle2_base:3500,cycle2_count:35,cycle2_unit:880,cycle2_threshold:14, bonus:2000, days:22, royalty:15, invoice_registered:true, fees:{vehicle:30000,maint:5500,ins:30000,admin:10000,rosai:1500,kamotsu:2000} },
+  { id:'rocket',      title:'ロケットナウ',  hours:'A1 11:00〜15:00 / B1 17:00〜21:00', mode:'rocket',
+    blocks:2, block_fee:2500, count:28,
+    sla_bonus:3000, sla_rate:100,
+    perf_free1:5, perf_free2:10, perf_unit1:750, perf_tier_end:24, perf_unit2:500,
+    vendor_per_case:50,
+    days:22, royalty:15, invoice_registered:true, fees:{vehicle:30000,maint:5500,ins:30000,admin:10000,rosai:1500,kamotsu:2000},
+    note:'CP One Japan 発注書準拠｜受諾率95%以上が必須／ブロック内オンライン率30%未満は料金不払いの可能性あり' },
 ];
 
+// 旧バージョン(v2)の rocket は推測値構造だったため、契約準拠の新構造で置き換える
+function migrateCases(list) {
+  const defRocket = DEFAULT_CASES.find(d => d.id === 'rocket');
+  return list.map(c => {
+    if (c.mode !== 'rocket' || c.block_fee !== undefined) return c;
+    return Object.assign({}, defRocket, {
+      id: c.id, title: c.title, royalty: c.royalty, days: c.days,
+      invoice_registered: c.invoice_registered, fees: c.fees,
+    });
+  });
+}
+
 let cases = (() => {
-  try { const s = localStorage.getItem(STORE_KEY); if (s) return JSON.parse(s); } catch(e) {}
+  try { const s = localStorage.getItem(STORE_KEY); if (s) return migrateCases(JSON.parse(s)); } catch(e) {}
+  try { const o = localStorage.getItem(OLD_STORE_KEY); if (o) return migrateCases(JSON.parse(o)); } catch(e) {}
   return JSON.parse(JSON.stringify(DEFAULT_CASES));
 })();
+
+persist(); // 移行結果を v3 に書き戻す
 
 const feeLabels = { vehicle:'車両代', maint:'メンテナンスパック', ins:'任意保険', admin:'事務手数料', rosai:'労災保険', kamotsu:'貨物保険' };
 let activeId = cases[0].id;
@@ -219,19 +246,30 @@ function buildCard(c) {
       <div class="row"><div class="label">稼働日数</div><div><input type="number" data-case="${c.id}" data-field="days" value="${c.days}"></div><div class="calc add" id="${c.id}-gross">—</div></div>`;
   } else if (c.mode === 'rocket') {
     inputsHtml = `
-      <div class="rocket-section"><div class="rocket-section-title">サイクル① 11:00〜15:00</div>
-        <div class="row"><div class="label">基本料(円/日)</div><div><input type="number" data-case="${c.id}" data-field="cycle1_base" value="${c.cycle1_base}"></div><div class="calc">—</div></div>
-        <div class="row"><div class="label">件数(件/日)</div><div><input type="number" data-case="${c.id}" data-field="cycle1_count" value="${c.cycle1_count}"></div><div class="calc">—</div></div>
-        <div class="row"><div class="label">超過単価(円/件)</div><div><input type="number" data-case="${c.id}" data-field="cycle1_unit" value="${c.cycle1_unit}"></div><div class="calc">—</div></div>
-        <div class="row"><div class="label">基本料込み件数</div><div><input type="number" data-case="${c.id}" data-field="cycle1_threshold" value="${c.cycle1_threshold}"></div><div class="calc" id="${c.id}-c1day">—</div></div>
+      <div class="rocket-section">
+        <div class="rocket-section-title">稼働ブロック</div>
+        <div class="block-sel" data-case="${c.id}">
+          <button data-blocks="1" class="${c.blocks === 1 ? 'active' : ''}">A1 or B1（1ブロック）</button>
+          <button data-blocks="2" class="${c.blocks === 2 ? 'active' : ''}">A1 + B1（2ブロック）</button>
+        </div>
+        <div class="row" style="padding-top:10px;"><div class="label">ブロック手数料(円/ブロック)</div><div><input type="number" data-case="${c.id}" data-field="block_fee" value="${c.block_fee}"></div><div class="calc" id="${c.id}-basefee">—</div></div>
+        <div class="row"><div class="label">1日の配達件数(合計)</div><div><input type="number" data-case="${c.id}" data-field="count" value="${c.count}"></div><div class="calc" id="${c.id}-perf">—</div></div>
       </div>
-      <div class="rocket-section"><div class="rocket-section-title">サイクル② 17:00〜21:00</div>
-        <div class="row"><div class="label">基本料(円/日)</div><div><input type="number" data-case="${c.id}" data-field="cycle2_base" value="${c.cycle2_base}"></div><div class="calc">—</div></div>
-        <div class="row"><div class="label">件数(件/日)</div><div><input type="number" data-case="${c.id}" data-field="cycle2_count" value="${c.cycle2_count}"></div><div class="calc">—</div></div>
-        <div class="row"><div class="label">超過単価(円/件)</div><div><input type="number" data-case="${c.id}" data-field="cycle2_unit" value="${c.cycle2_unit}"></div><div class="calc">—</div></div>
-        <div class="row"><div class="label">基本料込み件数</div><div><input type="number" data-case="${c.id}" data-field="cycle2_threshold" value="${c.cycle2_threshold}"></div><div class="calc" id="${c.id}-c2day">—</div></div>
+      <div class="rocket-section">
+        <div class="rocket-section-title">SLAボーナス</div>
+        <div class="row"><div class="label">単価(円/ブロック/日)</div><div><input type="number" data-case="${c.id}" data-field="sla_bonus" value="${c.sla_bonus}"></div><div class="calc">—</div></div>
+        <div class="row"><div class="label">達成率(%)</div><div><input type="number" data-case="${c.id}" data-field="sla_rate" value="${c.sla_rate}"></div><div class="calc" id="${c.id}-sladay">—</div></div>
       </div>
-      <div class="row"><div class="label">達成ボーナス(円/サイクル)</div><div><input type="number" data-case="${c.id}" data-field="bonus" value="${c.bonus}"></div><div class="calc" id="${c.id}-bonusday">—</div></div>
+      <div class="rocket-section">
+        <div class="rocket-section-title">パフォーマンスボーナス（1日合算）</div>
+        <div class="row"><div class="label">対象外件数（1ブロック時）</div><div><input type="number" data-case="${c.id}" data-field="perf_free1" value="${c.perf_free1}"></div><div class="calc">—</div></div>
+        <div class="row"><div class="label">対象外件数（2ブロック時）</div><div><input type="number" data-case="${c.id}" data-field="perf_free2" value="${c.perf_free2}"></div><div class="calc">—</div></div>
+        <div class="row"><div class="label">高単価ゾーン(円/件)</div><div><input type="number" data-case="${c.id}" data-field="perf_unit1" value="${c.perf_unit1}"></div><div class="calc" id="${c.id}-perf1">—</div></div>
+        <div class="row"><div class="label">高単価ゾーン上限(件目)</div><div><input type="number" data-case="${c.id}" data-field="perf_tier_end" value="${c.perf_tier_end}"></div><div class="calc">—</div></div>
+        <div class="row"><div class="label">以降の単価(円/件)</div><div><input type="number" data-case="${c.id}" data-field="perf_unit2" value="${c.perf_unit2}"></div><div class="calc" id="${c.id}-perf2">—</div></div>
+      </div>
+      <div class="row"><div class="label">ベンダーインセンティブ(円/件)</div><div><input type="number" data-case="${c.id}" data-field="vendor_per_case" value="${c.vendor_per_case}"></div><div class="calc" id="${c.id}-vendorday">—</div></div>
+      <div class="rocket-daysum"><span>1日あたり合計</span><span id="${c.id}-dayTotal">—</span></div>
       <div class="row"><div class="label">稼働日数</div><div><input type="number" data-case="${c.id}" data-field="days" value="${c.days}"></div><div class="calc add" id="${c.id}-gross">—</div></div>`;
   }
   const feesHtml = Object.keys(feeLabels).map(k => `
@@ -271,16 +309,31 @@ function calc(c) {
     revenue = c.daily * c.days;
     document.getElementById(c.id + '-gross').textContent = '¥' + fmt(revenue);
   } else if (c.mode === 'rocket') {
-    const c1extra = Math.max(0, c.cycle1_count - c.cycle1_threshold) * c.cycle1_unit;
-    const c2extra = Math.max(0, c.cycle2_count - c.cycle2_threshold) * c.cycle2_unit;
-    const c1day = c.cycle1_base + c1extra;
-    const c2day = c.cycle2_base + c2extra;
-    const bonusDay = c.bonus * 2;
-    revenue = (c1day + c2day + bonusDay) * c.days;
-    document.getElementById(c.id + '-c1day').textContent    = '¥' + fmt(c1day)    + '/日';
-    document.getElementById(c.id + '-c2day').textContent    = '¥' + fmt(c2day)    + '/日';
-    document.getElementById(c.id + '-bonusday').textContent = '¥' + fmt(bonusDay) + '/日';
-    document.getElementById(c.id + '-gross').textContent    = '¥' + fmt(revenue);
+    const blocks   = c.blocks === 1 ? 1 : 2;
+    // ① ブロック手数料（2,500円 × 稼働ブロック数）
+    const baseFee  = c.block_fee * blocks;
+    // ② SLAボーナス（3,000円 × ブロック数 × 達成率）
+    const slaDay   = c.sla_bonus * blocks * (c.sla_rate / 100);
+    // ③ パフォーマンスボーナス（1日合算・段階制）
+    const free     = blocks === 2 ? c.perf_free2 : c.perf_free1;
+    const tier1Qty = Math.max(0, Math.min(c.count, c.perf_tier_end) - free);
+    const tier2Qty = Math.max(0, c.count - c.perf_tier_end);
+    const perf1    = tier1Qty * c.perf_unit1;
+    const perf2    = tier2Qty * c.perf_unit2;
+    // ④ ベンダーインセンティブ（500件ごと25,000円 = 50円/件相当）
+    const vendorDay = c.count * c.vendor_per_case;
+
+    const dayTotal = baseFee + slaDay + perf1 + perf2 + vendorDay;
+    revenue = dayTotal * c.days;
+
+    document.getElementById(c.id + '-basefee').textContent   = '¥' + fmt(baseFee) + '/日';
+    document.getElementById(c.id + '-perf').textContent      = `${free + 1}件目〜ボーナス対象`;
+    document.getElementById(c.id + '-sladay').textContent    = '¥' + fmt(slaDay) + '/日';
+    document.getElementById(c.id + '-perf1').textContent     = tier1Qty + '件 → ¥' + fmt(perf1);
+    document.getElementById(c.id + '-perf2').textContent     = tier2Qty + '件 → ¥' + fmt(perf2);
+    document.getElementById(c.id + '-vendorday').textContent = '¥' + fmt(vendorDay) + '/日';
+    document.getElementById(c.id + '-dayTotal').textContent  = '¥' + fmt(dayTotal);
+    document.getElementById(c.id + '-gross').textContent     = '¥' + fmt(revenue);
   }
   document.getElementById(c.id + '-revenue').textContent      = '¥' + fmt(revenue);
   const royaltyAmt  = revenue * (c.royalty / 100);
@@ -330,6 +383,16 @@ function handleInvoiceToggle(e) {
   calc(c);
 }
 
+function handleBlockToggle(e) {
+  if (!e.target.dataset.blocks) return;
+  const sel = e.target.closest('.block-sel');
+  const c = cases.find(x => x.id === sel.dataset.case);
+  if (!c) return;
+  c.blocks = parseInt(e.target.dataset.blocks, 10);
+  sel.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.blocks === String(c.blocks)));
+  calc(c);
+}
+
 function resetAll() {
   if (!confirm('初期値に戻しますか？（管理者が設定した現場は保持されます）')) return;
   // 現在の cases の値だけリセット（配列構造はそのまま）
@@ -350,6 +413,7 @@ function render() {
   area.appendChild(buildCard(c));
   area.querySelectorAll('input[type="number"]').forEach(inp => inp.addEventListener('input', handleInput));
   area.querySelectorAll('.toggle').forEach(t => t.addEventListener('click', handleInvoiceToggle));
+  area.querySelectorAll('.block-sel').forEach(t => t.addEventListener('click', handleBlockToggle));
   calc(c);
 }
 
@@ -421,18 +485,22 @@ function renderForm(c) {
       <div class="f-row"><span class="f-label req">日当（円）</span>    <input type="number" id="f-daily" value="${c&&c.mode==='daily'?c.daily:25000}"></div>
       <div class="f-row"><span class="f-label">稼働日数（初期値）</span><input type="number" id="f-days"  value="${c?c.days:22}"></div>`;
     if (formMode === 'rocket') return `
-      <div class="sec-title">サイクル① 設定</div>
-      <div class="f-row"><span class="f-label">基本料（円/日）</span>  <input type="number" id="f-c1base"      value="${c.cycle1_base}"></div>
-      <div class="f-row"><span class="f-label">件数（件/日）</span>    <input type="number" id="f-c1count"     value="${c.cycle1_count}"></div>
-      <div class="f-row"><span class="f-label">超過単価（円/件）</span><input type="number" id="f-c1unit"      value="${c.cycle1_unit}"></div>
-      <div class="f-row"><span class="f-label">基本料込み件数</span>   <input type="number" id="f-c1threshold" value="${c.cycle1_threshold}"></div>
-      <div class="sec-title">サイクル② 設定</div>
-      <div class="f-row"><span class="f-label">基本料（円/日）</span>  <input type="number" id="f-c2base"      value="${c.cycle2_base}"></div>
-      <div class="f-row"><span class="f-label">件数（件/日）</span>    <input type="number" id="f-c2count"     value="${c.cycle2_count}"></div>
-      <div class="f-row"><span class="f-label">超過単価（円/件）</span><input type="number" id="f-c2unit"      value="${c.cycle2_unit}"></div>
-      <div class="f-row"><span class="f-label">基本料込み件数</span>   <input type="number" id="f-c2threshold" value="${c.cycle2_threshold}"></div>
-      <div class="f-row"><span class="f-label">達成ボーナス（円/サイクル）</span><input type="number" id="f-bonus" value="${c.bonus}"></div>
-      <div class="f-row"><span class="f-label">稼働日数（初期値）</span><input type="number" id="f-days"       value="${c.days}"></div>`;
+      <div class="sec-title">ブロック手数料</div>
+      <div class="f-row"><span class="f-label">稼働ブロック数</span>      <input type="number" id="f-blocks"    value="${c.blocks}"></div>
+      <div class="f-row"><span class="f-label">手数料（円/ブロック）</span><input type="number" id="f-blockfee"  value="${c.block_fee}"></div>
+      <div class="f-row"><span class="f-label">1日の配達件数</span>       <input type="number" id="f-count"     value="${c.count}"></div>
+      <div class="sec-title">SLAボーナス</div>
+      <div class="f-row"><span class="f-label">単価（円/ブロック/日）</span><input type="number" id="f-slabonus" value="${c.sla_bonus}"></div>
+      <div class="f-row"><span class="f-label">達成率（%）</span>          <input type="number" id="f-slarate"  value="${c.sla_rate}"></div>
+      <div class="sec-title">パフォーマンスボーナス</div>
+      <div class="f-row"><span class="f-label">対象外件数（1ブロック）</span><input type="number" id="f-pfree1"   value="${c.perf_free1}"></div>
+      <div class="f-row"><span class="f-label">対象外件数（2ブロック）</span><input type="number" id="f-pfree2"   value="${c.perf_free2}"></div>
+      <div class="f-row"><span class="f-label">高単価（円/件）</span>       <input type="number" id="f-punit1"   value="${c.perf_unit1}"></div>
+      <div class="f-row"><span class="f-label">高単価ゾーン上限（件目）</span><input type="number" id="f-ptierend" value="${c.perf_tier_end}"></div>
+      <div class="f-row"><span class="f-label">以降の単価（円/件）</span>   <input type="number" id="f-punit2"   value="${c.perf_unit2}"></div>
+      <div class="sec-title">その他</div>
+      <div class="f-row"><span class="f-label">ベンダーインセンティブ（円/件）</span><input type="number" id="f-vendor" value="${c.vendor_per_case}"></div>
+      <div class="f-row"><span class="f-label">稼働日数（初期値）</span>    <input type="number" id="f-days"     value="${c.days}"></div>`;
     return '';
   };
 
@@ -505,9 +573,11 @@ function saveForm() {
     Object.assign(data, { daily: gn('f-daily'), days: gn('f-days') || 22 });
   } else if (formMode === 'rocket') {
     Object.assign(data, {
-      cycle1_base: gn('f-c1base'), cycle1_count: gn('f-c1count'), cycle1_unit: gn('f-c1unit'), cycle1_threshold: gn('f-c1threshold'),
-      cycle2_base: gn('f-c2base'), cycle2_count: gn('f-c2count'), cycle2_unit: gn('f-c2unit'), cycle2_threshold: gn('f-c2threshold'),
-      bonus: gn('f-bonus'), days: gn('f-days') || 22,
+      blocks: gn('f-blocks') === 1 ? 1 : 2, block_fee: gn('f-blockfee'), count: gn('f-count'),
+      sla_bonus: gn('f-slabonus'), sla_rate: gn('f-slarate'),
+      perf_free1: gn('f-pfree1'), perf_free2: gn('f-pfree2'),
+      perf_unit1: gn('f-punit1'), perf_tier_end: gn('f-ptierend'), perf_unit2: gn('f-punit2'),
+      vendor_per_case: gn('f-vendor'), days: gn('f-days') || 22,
     });
   }
 
