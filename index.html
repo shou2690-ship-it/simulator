@@ -101,12 +101,6 @@
   .mode-sel { display: inline-flex; background: var(--bg); border-radius: 5px; padding: 3px; border: 1px solid var(--border); }
   .mode-sel button { background: transparent; color: var(--text-dim); border: none; padding: 5px 14px; font-size: 12.5px; cursor: pointer; border-radius: 3px; font-family: inherit; font-weight: 500; transition: all .15s; }
   .mode-sel button.active { background: var(--accent); color: var(--bg); font-weight: 700; }
-  /* Password box */
-  .pw-box { max-width: 340px; margin: 0 auto; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 32px; text-align: center; }
-  .pw-box h2 { margin: 0 0 6px; font-size: 18px; }
-  .pw-box p { color: var(--text-dim); font-size: 13px; margin: 0 0 20px; }
-  .pw-err { color: var(--danger); font-size: 12px; margin-top: 8px; min-height: 18px; }
-
   @media (max-width: 768px) {
     body { padding: 12px; }
     .card { padding: 18px 16px; }
@@ -126,28 +120,13 @@
         <div class="subtitle">数値を入力するとリアルタイムで振込金額が反映されます</div>
       </div>
       <div class="header-btns">
-        <button class="settings-btn" onclick="showGate()">⚙ 現場設定</button>
+        <button class="settings-btn" onclick="openAdmin()">⚙ 現場設定</button>
         <button class="reset-btn" onclick="resetAll()">初期値に戻す</button>
       </div>
     </div>
   </header>
   <nav class="tabs" id="tabs"></nav>
   <div id="cardArea"></div>
-</div>
-
-<!-- Password gate -->
-<div class="overlay" id="gateOverlay">
-  <div class="pw-box">
-    <h2>⚙ 現場設定</h2>
-    <p>管理者パスワードを入力してください</p>
-    <input type="password" id="pwInput" placeholder="パスワード" style="text-align:center;"
-      onkeydown="if(event.key==='Enter')submitPw()">
-    <div class="pw-err" id="pwErr"></div>
-    <div style="display:flex;gap:8px;margin-top:16px;">
-      <button class="a-btn" onclick="closeGate()" style="flex:1;">キャンセル</button>
-      <button class="a-btn primary" onclick="submitPw()" style="flex:1;">ログイン</button>
-    </div>
-  </div>
 </div>
 
 <!-- Admin panel -->
@@ -166,8 +145,6 @@
 </div>
 
 <script>
-const ADMIN_PW  = 'cario2026';
-const AUTHED_KEY = 'sim_admin_authed';
 const STORE_KEY  = 'simulator_cases_v3';
 const OLD_STORE_KEY = 'simulator_cases_v2';
 
@@ -418,25 +395,6 @@ function render() {
 }
 
 // ── Admin ────────────────────────────────────────────────────────
-
-function showGate() {
-  if (sessionStorage.getItem(AUTHED_KEY) === '1') { openAdmin(); return; }
-  document.getElementById('pwInput').value = '';
-  document.getElementById('pwErr').textContent = '';
-  document.getElementById('gateOverlay').style.display = 'block';
-  setTimeout(() => document.getElementById('pwInput').focus(), 80);
-}
-function closeGate() { document.getElementById('gateOverlay').style.display = 'none'; }
-function submitPw() {
-  if (document.getElementById('pwInput').value === ADMIN_PW) {
-    sessionStorage.setItem(AUTHED_KEY, '1');
-    closeGate();
-    openAdmin();
-  } else {
-    document.getElementById('pwErr').textContent = 'パスワードが違います';
-    document.getElementById('pwInput').select();
-  }
-}
 
 function openAdmin() {
   buildAdminList();
