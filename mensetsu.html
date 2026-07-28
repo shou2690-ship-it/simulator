@@ -350,6 +350,18 @@ body {
 .rank-tbl tr.top td:first-child { font-weight: 700; color: var(--gold); }
 .rank-tbl tr.start td { background: rgba(59,130,246,.06); }
 .rank-tbl tr.start td:first-child { color: var(--text); }
+.rank-tbl td.pace  { text-align: right; font-weight: 700; white-space: nowrap; background: rgba(245,158,11,.07); }
+.rank-tbl td.pace2 { text-align: right; color: var(--dim); white-space: nowrap; }
+
+/* ── Rank pace cards ── */
+.pace-row {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+  font-size: 13px; padding: 7px 0;
+  border-bottom: 1px dashed rgba(100,116,139,.25);
+}
+.pace-pt { font-weight: 800; color: var(--green); white-space: nowrap; }
+.pace-total { font-size: 13px; font-weight: 800; margin-top: 10px; line-height: 1.5; }
+.scroll-hint { display: none; }
 .rank-bar { display: flex; align-items: center; gap: 6px; }
 .rank-bar-fill { height: 6px; border-radius: 3px; background: var(--blue); }
 .rate-num { font-variant-numeric: tabular-nums; }
@@ -441,6 +453,7 @@ body {
   .tl-row { grid-template-columns: 64px 20px 1fr; }
   .big { font-size: 34px; }
   .rank-bar { display: none; }
+  .scroll-hint { display: block; font-size: 11px; color: var(--dim); text-align: right; margin: -8px 0 8px; }
 }
 </style>
 </head>
@@ -764,54 +777,59 @@ body {
 <div class="slide" id="s5">
   <div class="slide-tag">Rank System</div>
   <div class="slide-title">評価制度 〜ランクが上がるほど手取りが増える〜</div>
-  <div class="slide-desc">3ヶ月ごとに評価。頑張りがランクに直結し、ロイヤリティ（手数料）が下がる仕組みです。</div>
+  <div class="slide-desc">毎月の稼働実績をRP（ランクポイント）で評価。累計RPでランクが上がり、ロイヤリティ（手数料）が下がる仕組みです。</div>
 
   <div class="g2">
     <div class="card">
-      <div class="card-title">ランク評価表（ロイヤリティ）</div>
+      <div class="card-title">ランク評価表（必要RP・ロイヤリティ）</div>
       <table class="rank-tbl">
         <thead>
           <tr>
             <th>ランク</th>
+            <th style="text-align:right;">必要累計RP</th>
             <th>ロイヤリティ</th>
-            <th style="min-width:100px;">割合イメージ</th>
+            <th style="min-width:70px;">割合</th>
           </tr>
         </thead>
         <tbody>
-          <tr class="top"><td>🏆 CARIO</td><td class="rate-num" style="color:var(--gold);font-weight:800;">0.0%</td><td><div class="rank-bar"><div class="rank-bar-fill" style="width:2px;background:var(--gold);"></div></div></td></tr>
-          <tr class="top"><td>💎 ロイヤル</td><td class="rate-num">10.0%</td><td><div class="rank-bar"><div class="rank-bar-fill" style="width:20px;"></div></div></td></tr>
-          <tr><td>⚫ ブラック</td><td class="rate-num">10.5%</td><td><div class="rank-bar"><div class="rank-bar-fill" style="width:21px;"></div></div></td></tr>
-          <tr><td>💠 ダイヤモンド</td><td class="rate-num">11.0%</td><td><div class="rank-bar"><div class="rank-bar-fill" style="width:22px;"></div></div></td></tr>
-          <tr><td>💚 エメラルド</td><td class="rate-num">11.5%</td><td><div class="rank-bar"><div class="rank-bar-fill" style="width:23px;"></div></div></td></tr>
-          <tr><td>❤️ ルビー</td><td class="rate-num">12.0%</td><td><div class="rank-bar"><div class="rank-bar-fill" style="width:24px;"></div></div></td></tr>
-          <tr><td>💙 サファイア</td><td class="rate-num">12.5%</td><td><div class="rank-bar"><div class="rank-bar-fill" style="width:25px;"></div></div></td></tr>
-          <tr><td>🔷 プラチナ</td><td class="rate-num">13.0%</td><td><div class="rank-bar"><div class="rank-bar-fill" style="width:26px;"></div></div></td></tr>
-          <tr><td>🌕 ゴールド</td><td class="rate-num">13.5%</td><td><div class="rank-bar"><div class="rank-bar-fill" style="width:27px;"></div></div></td></tr>
-          <tr><td>🩶 シルバー</td><td class="rate-num">14.0%</td><td><div class="rank-bar"><div class="rank-bar-fill" style="width:28px;"></div></div></td></tr>
-          <tr><td>🟤 ブロンズ</td><td class="rate-num">14.5%</td><td><div class="rank-bar"><div class="rank-bar-fill" style="width:29px;"></div></div></td></tr>
-          <tr class="start"><td>⬜ ホワイト</td><td class="rate-num">15.0%</td><td style="color:var(--blue);font-size:11px;font-weight:700;">← 入社スタート</td></tr>
+          <tr class="top"><td>✨ CARIO</td><td class="rate-num" style="text-align:right;color:var(--gold);">社員限定</td><td class="rate-num" style="color:var(--gold);font-weight:800;">0.0%</td><td><div class="rank-bar"><div class="rank-bar-fill" style="width:2px;background:var(--gold);"></div></div></td></tr>
+          <tr class="top"><td>👑 ロイヤル</td><td class="rate-num" style="text-align:right;">660</td><td class="rate-num">10.0%</td><td><div class="rank-bar"><div class="rank-bar-fill" style="width:20px;"></div></div></td></tr>
+          <tr><td>🖤 ブラック</td><td class="rate-num" style="text-align:right;">510</td><td class="rate-num">10.5%</td><td><div class="rank-bar"><div class="rank-bar-fill" style="width:21px;"></div></div></td></tr>
+          <tr><td>💎 ダイヤモンド</td><td class="rate-num" style="text-align:right;">455</td><td class="rate-num">11.0%</td><td><div class="rank-bar"><div class="rank-bar-fill" style="width:22px;"></div></div></td></tr>
+          <tr><td>💚 エメラルド</td><td class="rate-num" style="text-align:right;">395</td><td class="rate-num">11.5%</td><td><div class="rank-bar"><div class="rank-bar-fill" style="width:23px;"></div></div></td></tr>
+          <tr><td>🔴 ルビー</td><td class="rate-num" style="text-align:right;">340</td><td class="rate-num">12.0%</td><td><div class="rank-bar"><div class="rank-bar-fill" style="width:24px;"></div></div></td></tr>
+          <tr><td>💠 サファイア</td><td class="rate-num" style="text-align:right;">270</td><td class="rate-num">12.5%</td><td><div class="rank-bar"><div class="rank-bar-fill" style="width:25px;"></div></div></td></tr>
+          <tr><td>💿 プラチナ</td><td class="rate-num" style="text-align:right;">220</td><td class="rate-num">13.0%</td><td><div class="rank-bar"><div class="rank-bar-fill" style="width:26px;"></div></div></td></tr>
+          <tr><td>🥇 ゴールド</td><td class="rate-num" style="text-align:right;">165</td><td class="rate-num">13.5%</td><td><div class="rank-bar"><div class="rank-bar-fill" style="width:27px;"></div></div></td></tr>
+          <tr><td>🥈 シルバー</td><td class="rate-num" style="text-align:right;">105</td><td class="rate-num">14.0%</td><td><div class="rank-bar"><div class="rank-bar-fill" style="width:28px;"></div></div></td></tr>
+          <tr><td>🥉 ブロンズ</td><td class="rate-num" style="text-align:right;">50</td><td class="rate-num">14.5%</td><td><div class="rank-bar"><div class="rank-bar-fill" style="width:29px;"></div></div></td></tr>
+          <tr class="start"><td>🤍 ホワイト</td><td class="rate-num" style="text-align:right;">0</td><td class="rate-num">15.0%</td><td style="color:var(--blue);font-size:11px;font-weight:700;">← START</td></tr>
         </tbody>
       </table>
     </div>
 
     <div style="display:flex;flex-direction:column;gap:14px;">
       <div class="card">
-        <div class="card-title">ランクアップの条件（例）</div>
+        <div class="card-title">RPの加点項目（毎月）</div>
         <ul class="chk">
-          <li>月22日以上の安定稼働</li>
-          <li>誤配送・事故ゼロ</li>
-          <li>メンテナンス実施（5,000km毎）</li>
-          <li>当日欠勤なし</li>
-          <li>代走対応できると 2ランクUP ⭐</li>
+          <li>稼働日数 … 18日 +5 ／ 20日 +7 ／ 22日 +10 ／ 25日 +15</li>
+          <li>シフト期限内提出（毎月20日まで） +3</li>
+          <li>終了報告 全日提出 +5</li>
+          <li>事故・クレームなし +5</li>
+          <li>メンテナンス報告 +3 × 件数</li>
+          <li>勤続ボーナス +1〜+6</li>
+          <li>新人フォロー・OJT 最大 +20 ／ 上長評価 最大 +15 ⭐</li>
         </ul>
       </div>
       <div class="card">
-        <div class="card-title">ランクダウンの条件</div>
+        <div class="card-title">減点項目（ランクが下がることも）</div>
         <ul class="chk warn">
-          <li>誤配送 1回 → 1ランクdown</li>
-          <li>事故 1回 → 1〜2ランクdown</li>
-          <li>当日欠勤 → 2ランクdown</li>
-          <li>メンテ未実施 → 1ランクdown</li>
+          <li>誤配送 −3（3件以上 −15）</li>
+          <li>クレーム発生 −10</li>
+          <li>メンテナンス未報告 −8</li>
+          <li>シフト未提出 −3</li>
+          <li>無断欠勤 −15（＋1ランクダウン）</li>
+          <li>重大事故（人身） −30（＋2ランクダウン）</li>
         </ul>
       </div>
       <div class="card" style="background:rgba(16,185,129,.06);border-color:rgba(16,185,129,.3);">
@@ -830,19 +848,17 @@ body {
   <div class="g2">
     <div class="card">
       <div class="card-title">RP（ランクポイント）の仕組み</div>
-      <div style="font-size:13px;color:var(--dim);margin-bottom:10px;line-height:1.6;">管理者が毎月の稼働実績をもとに付与。累計RPがランクを決定します。3ヶ月ごとに評価が行われます。</div>
-      <div style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:6px;">主なRP加点の例</div>
-      <ul class="chk" style="font-size:13px;margin-bottom:10px;">
-        <li>安定稼働（月22日以上）</li>
-        <li>誤配送・事故ゼロ達成</li>
-        <li>メンテナンス実施（5,000km毎）</li>
-        <li>代走対応で大幅UP ⭐</li>
-      </ul>
-      <div style="background:var(--panel2);border-radius:6px;padding:10px;font-size:12px;line-height:2;">
-        <div style="display:flex;justify-content:space-between;"><span>ホワイト → ブロンズ</span><span style="color:var(--blue);font-weight:700;">累計 50 RP</span></div>
-        <div style="display:flex;justify-content:space-between;"><span>ブロンズ → シルバー</span><span style="color:var(--blue);font-weight:700;">累計 105 RP</span></div>
-        <div style="display:flex;justify-content:space-between;"><span>シルバー → ゴールド</span><span style="color:var(--blue);font-weight:700;">累計 165 RP</span></div>
-        <div style="display:flex;justify-content:space-between;"><span style="color:var(--gold);">ロイヤル → CARIO</span><span style="color:var(--gold);font-weight:700;">累計 660 RP〜</span></div>
+      <div style="font-size:13px;color:var(--dim);margin-bottom:10px;line-height:1.6;">毎月の稼働実績をもとにRPが加算されます。RPは減らない限り積み上がり、<strong style="color:var(--text);">累計RP</strong>が一定ラインを超えるとランクアップ。ランクアップと同時にロイヤリティ（手数料）が下がります。</div>
+      <div style="font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:6px;">昇格ライン（累計RP）</div>
+      <div style="background:var(--panel2);border-radius:6px;padding:10px;font-size:12px;line-height:2;margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;"><span>🤍 ホワイト → 🥉 ブロンズ</span><span style="color:var(--blue);font-weight:700;">累計 50 RP</span></div>
+        <div style="display:flex;justify-content:space-between;"><span>🥉 ブロンズ → 🥈 シルバー</span><span style="color:var(--blue);font-weight:700;">累計 105 RP</span></div>
+        <div style="display:flex;justify-content:space-between;"><span>🥈 シルバー → 🥇 ゴールド</span><span style="color:var(--blue);font-weight:700;">累計 165 RP</span></div>
+        <div style="display:flex;justify-content:space-between;"><span style="color:var(--gold);">🖤 ブラック → 👑 ロイヤル</span><span style="color:var(--gold);font-weight:700;">累計 660 RP</span></div>
+      </div>
+      <div style="font-size:13px;color:var(--dim);line-height:1.7;">
+        さらに<strong style="color:var(--green);">継続ボーナス</strong>（一度きり）が加算されます。1ヶ月 +10 → 1年 <strong style="color:var(--green);">+60</strong> → 2年 <strong style="color:var(--gold);">+100</strong>。長く続けるほど一気にランクが伸びる設計です。<br>
+        <span style="color:var(--blue);font-weight:700;">▶ 次ページ「ランク到達目安」で、いつどのランクに届くかを確認できます。</span>
       </div>
     </div>
     <div class="card">
@@ -863,6 +879,110 @@ body {
       </div>
     </div>
   </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     Slide 5b: RANK ROADMAP（到達目安）
+═══════════════════════════════════════════ -->
+<div class="slide" id="s5b">
+  <div class="slide-tag">Rank Guide</div>
+  <div class="slide-title">ランク到達 目安表</div>
+  <div class="slide-desc">各ランクに必要な累計RPと、標準的な獲得ペースでの到達目安です。「いつ手数料が下がるのか」が入社前に分かります。</div>
+
+  <div class="card">
+    <div class="card-title">ランク一覧（必要RP・手数料率・到達の目安）</div>
+    <div class="scroll-hint">← 横にスクロールできます →</div>
+    <div style="overflow-x:auto;">
+      <table class="rank-tbl" style="min-width:540px;">
+        <thead>
+          <tr>
+            <th>ランク</th>
+            <th style="text-align:right;">必要累計RP</th>
+            <th style="text-align:right;">前ランク差</th>
+            <th style="text-align:right;">手数料率</th>
+            <th style="text-align:right;">到達目安<br>標準ペース</th>
+            <th style="text-align:right;">到達目安<br>ハイペース</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="start"><td>🤍 ホワイト</td><td class="rate-num" style="text-align:right;">0</td><td class="rate-num" style="text-align:right;color:var(--dim);">基準</td><td class="rate-num" style="text-align:right;">15.0%</td><td class="pace" style="font-weight:700;">スタート</td><td class="pace2">スタート</td></tr>
+          <tr><td>🥉 ブロンズ</td><td class="rate-num" style="text-align:right;">50</td><td class="rate-num" style="text-align:right;color:var(--dim);">+50</td><td class="rate-num" style="text-align:right;">14.5%</td><td class="pace">約2ヶ月</td><td class="pace2">約2ヶ月</td></tr>
+          <tr><td>🥈 シルバー</td><td class="rate-num" style="text-align:right;">105</td><td class="rate-num" style="text-align:right;color:var(--dim);">+55</td><td class="rate-num" style="text-align:right;">14.0%</td><td class="pace">約4ヶ月</td><td class="pace2">約3ヶ月</td></tr>
+          <tr><td>🥇 ゴールド</td><td class="rate-num" style="text-align:right;">165</td><td class="rate-num" style="text-align:right;color:var(--dim);">+60</td><td class="rate-num" style="text-align:right;">13.5%</td><td class="pace">約6ヶ月</td><td class="pace2">約5ヶ月</td></tr>
+          <tr><td>💿 プラチナ</td><td class="rate-num" style="text-align:right;">220</td><td class="rate-num" style="text-align:right;color:var(--dim);">+55</td><td class="rate-num" style="text-align:right;">13.0%</td><td class="pace">約7ヶ月</td><td class="pace2">約6ヶ月</td></tr>
+          <tr><td>💠 サファイア</td><td class="rate-num" style="text-align:right;">270</td><td class="rate-num" style="text-align:right;color:var(--dim);">+50</td><td class="rate-num" style="text-align:right;">12.5%</td><td class="pace">約9ヶ月</td><td class="pace2">約7ヶ月</td></tr>
+          <tr><td>🔴 ルビー</td><td class="rate-num" style="text-align:right;">340</td><td class="rate-num" style="text-align:right;color:var(--dim);">+70</td><td class="rate-num" style="text-align:right;">12.0%</td><td class="pace">約12ヶ月</td><td class="pace2">約9ヶ月</td></tr>
+          <tr><td>💚 エメラルド</td><td class="rate-num" style="text-align:right;">395</td><td class="rate-num" style="text-align:right;color:var(--dim);">+55</td><td class="rate-num" style="text-align:right;">11.5%</td><td class="pace">約12ヶ月</td><td class="pace2">約11ヶ月</td></tr>
+          <tr><td>💎 ダイヤモンド</td><td class="rate-num" style="text-align:right;">455</td><td class="rate-num" style="text-align:right;color:var(--dim);">+60</td><td class="rate-num" style="text-align:right;">11.0%</td><td class="pace">約14ヶ月</td><td class="pace2">約12ヶ月</td></tr>
+          <tr><td>🖤 ブラック</td><td class="rate-num" style="text-align:right;">510</td><td class="rate-num" style="text-align:right;color:var(--dim);">+55</td><td class="rate-num" style="text-align:right;">10.5%</td><td class="pace">約16ヶ月</td><td class="pace2">約12ヶ月</td></tr>
+          <tr class="top"><td>👑 ロイヤル</td><td class="rate-num" style="text-align:right;">660</td><td class="rate-num" style="text-align:right;color:var(--dim);">+150</td><td class="rate-num" style="text-align:right;">10.0%</td><td class="pace">約21ヶ月</td><td class="pace2">約16ヶ月</td></tr>
+          <tr class="top"><td>✨ CARIO</td><td class="rate-num" style="text-align:right;color:var(--gold);">社員限定</td><td class="rate-num" style="text-align:right;color:var(--dim);">—</td><td class="rate-num" style="text-align:right;color:var(--gold);font-weight:800;">0.0%</td><td class="pace">—</td><td class="pace2">—</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="font-size:11px;color:var(--dim);line-height:1.6;margin-top:10px;">
+      到達目安＝入社月から毎月コンスタントに下記の獲得を続けた場合の概算（継続ボーナス含む）。実際は稼働状況・管理者評価で前後します。手数料率が低いほど手取りが増えます（＝ランクボーナス）。
+    </div>
+  </div>
+
+  <div class="divider" style="margin:16px 0 12px;"></div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">🟦 標準ペース … 月 23pt ＋ 勤続 ＋ 継続</div>
+      <div class="pace-row"><span>稼働 22日</span><span class="pace-pt">+10</span></div>
+      <div class="pace-row"><span>シフト期限内提出（毎月20日まで）</span><span class="pace-pt">+3</span></div>
+      <div class="pace-row"><span>終了報告 全日提出</span><span class="pace-pt">+5</span></div>
+      <div class="pace-row"><span>事故・クレームなし</span><span class="pace-pt">+5</span></div>
+      <div class="pace-total" style="color:var(--blue);">固定合計 +23pt ／ 月（＋勤続1〜6・継続ボーナス）</div>
+    </div>
+    <div class="card" style="border-color:rgba(245,158,11,.3);background:rgba(245,158,11,.05);">
+      <div class="card-title">🟧 ハイペース … 月 31pt ＋ 勤続 ＋ 継続</div>
+      <div class="pace-row"><span>稼働 25日</span><span class="pace-pt">+15</span></div>
+      <div class="pace-row"><span>シフト期限内提出</span><span class="pace-pt">+3</span></div>
+      <div class="pace-row"><span>終了報告 全日提出</span><span class="pace-pt">+5</span></div>
+      <div class="pace-row"><span>事故・クレームなし</span><span class="pace-pt">+5</span></div>
+      <div class="pace-row"><span>メンテナンス報告 1件</span><span class="pace-pt">+3</span></div>
+      <div class="pace-total" style="color:var(--gold);">固定合計 +31pt ／ 月（＋勤続・継続・OJT/上長評価で更に加算）</div>
+    </div>
+  </div>
+  <div style="font-size:11px;color:var(--dim);line-height:1.7;margin-top:10px;">
+    勤続ボーナス：入社〜3ヶ月 +1／4ヶ月〜1年 +3／1年1ヶ月〜 +6（毎月）。<br>
+    その他の加点（任意）：新人フォロー・OJT 最大+20／上長評価 最大+15／メンテ報告 +3×件数。
+  </div>
+
+  <div class="divider" style="margin:16px 0 12px;"></div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">継続ボーナス（マイルストーン・一度きり）</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <span class="tag tag-blue">1ヶ月 +10</span>
+        <span class="tag tag-blue">3ヶ月 +15</span>
+        <span class="tag tag-blue">6ヶ月 +25</span>
+        <span class="tag tag-green">1年 +60</span>
+        <span class="tag tag-gold">2年 +100</span>
+        <span class="tag tag-gold">3年 +80</span>
+        <span class="tag tag-gold">4年 +80</span>
+        <span class="tag tag-gold">5年 +80</span>
+      </div>
+      <div style="font-size:11px;color:var(--dim);margin-top:10px;line-height:1.6;">長く続けるほど一気にRPが伸びる設計。1年で+60、2年で+100が加算されます。</div>
+    </div>
+    <div class="card" style="border-color:rgba(239,68,68,.25);">
+      <div class="card-title" style="color:var(--red);">減点（ランクが下がることも）</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <span class="tag tag-red">誤配送 −3（3件以上 −15）</span>
+        <span class="tag tag-red">クレーム −10</span>
+        <span class="tag tag-red">メンテ未報告 −8</span>
+        <span class="tag tag-red">シフト未提出 −3</span>
+        <span class="tag tag-red">無断欠勤 −15（＋1ランクダウン）</span>
+        <span class="tag tag-red">重大事故 −30（＋2ランクダウン）</span>
+      </div>
+      <div style="font-size:11px;color:var(--dim);margin-top:10px;line-height:1.6;">安全・報告を守っていれば減点はありません。「事故・クレームなし +5」も毎月加算されます。</div>
+    </div>
+  </div>
+
+  <a href="./index.html" target="_blank" class="sim-link" style="margin-top:16px;">
+    📊 ランク別の手取り額を収支シミュレーターで確認する →
+  </a>
 </div>
 
 <!-- ════════════════════════════════════════
@@ -993,7 +1113,7 @@ body {
     <div class="benefit">
       <div class="benefit-icon">📈</div>
       <div class="benefit-name">評価に応じた昇給制度</div>
-      <div class="benefit-desc">3ヶ月ごとのランク評価で手数料率が下がり手取り増加。頑張りが直接収入に反映。</div>
+      <div class="benefit-desc">毎月のRP評価でランクが上がり、手数料率が下がって手取り増加。頑張りが直接収入に反映。</div>
     </div>
     <div class="benefit">
       <div class="benefit-icon">🛠</div>
@@ -1082,6 +1202,7 @@ const SLIDES = [
   { id: 's3', label: '仕事内容' },
   { id: 's4', label: '報酬' },
   { id: 's5', label: 'ランク' },
+  { id: 's5b', label: '到達目安' },
   { id: 's6', label: '費用・手取り' },
   { id: 's7', label: '週払い' },
   { id: 's8', label: '福利厚生' },
