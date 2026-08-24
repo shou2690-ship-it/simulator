@@ -149,18 +149,18 @@ const STORE_KEY  = 'simulator_cases_v3';
 const OLD_STORE_KEY = 'simulator_cases_v2';
 
 const DEFAULT_CASES = [
-  { id:'sagawa',      title:'佐川',         hours:'7:30〜20:00',             mode:'piece', unit:177,   count:150, days:24, royalty:15, invoice_registered:true, fees:{vehicle:30000,maint:5500,ins:30000,admin:10000,rosai:1500,kamotsu:2000} },
-  { id:'yamato',      title:'ヤマト',        hours:'7:30〜20:00',             mode:'piece', unit:180,   count:150, days:22, royalty:15, invoice_registered:true, fees:{vehicle:30000,maint:5500,ins:30000,admin:10000,rosai:2000,kamotsu:1500} },
-  { id:'askul',       title:'アスクル',      hours:'6:30〜16:00 or 18:00',    mode:'daily', daily:25000,          days:22, royalty:15, invoice_registered:true, fees:{vehicle:30000,maint:5500,ins:30000,admin:10000,rosai:1500,kamotsu:2000} },
-  { id:'amazon',      title:'Amazon',       hours:'9:00〜19:00',             mode:'daily', daily:30000,          days:22, royalty:15, invoice_registered:true, fees:{vehicle:30000,maint:5500,ins:30000,admin:10000,rosai:1500,kamotsu:2000}, note:'9:00-12:30 Amazon / 13:00-15:10 hub / 15:30-19:00 Amazon / 19:30-22:00 hub' },
-  { id:'sagawa_night',title:'佐川ナイト配',  hours:'17:00〜20:00',            mode:'piece', unit:90,    count:30,  days:22, royalty:15, invoice_registered:true, fees:{vehicle:30000,maint:5500,ins:30000,admin:10000,rosai:1500,kamotsu:2000} },
-  { id:'amazon_hub',  title:'Amazon hub',   hours:'〜23:59',                 mode:'daily', daily:5000,           days:22, royalty:0,  invoice_registered:true, fees:{vehicle:0,maint:0,ins:0,admin:0,rosai:0,kamotsu:0} },
+  { id:'sagawa',      title:'佐川',         hours:'7:30〜20:00',             mode:'piece', unit:177,   count:150, days:24, royalty:15, invoice_registered:true, fees:{vehicle:30000,ins:30000,admin:10000,rosai:1500,kamotsu:2000} },
+  { id:'yamato',      title:'ヤマト',        hours:'7:30〜20:00',             mode:'piece', unit:180,   count:150, days:22, royalty:15, invoice_registered:true, fees:{vehicle:30000,ins:30000,admin:10000,rosai:2000,kamotsu:1500} },
+  { id:'askul',       title:'アスクル',      hours:'6:30〜16:00 or 18:00',    mode:'daily', daily:25000,          days:22, royalty:15, invoice_registered:true, fees:{vehicle:30000,ins:30000,admin:10000,rosai:1500,kamotsu:2000} },
+  { id:'amazon',      title:'Amazon',       hours:'9:00〜19:00',             mode:'daily', daily:30000,          days:22, royalty:15, invoice_registered:true, fees:{vehicle:30000,ins:30000,admin:10000,rosai:1500,kamotsu:2000}, note:'9:00-12:30 Amazon / 13:00-15:10 hub / 15:30-19:00 Amazon / 19:30-22:00 hub' },
+  { id:'sagawa_night',title:'佐川ナイト配',  hours:'17:00〜20:00',            mode:'piece', unit:90,    count:30,  days:22, royalty:15, invoice_registered:true, fees:{vehicle:30000,ins:30000,admin:10000,rosai:1500,kamotsu:2000} },
+  { id:'amazon_hub',  title:'Amazon hub',   hours:'〜23:59',                 mode:'daily', daily:5000,           days:22, royalty:0,  invoice_registered:true, fees:{vehicle:0,ins:0,admin:0,rosai:0,kamotsu:0} },
   { id:'rocket',      title:'ロケットナウ',  hours:'A1 11:00〜15:00 / B1 17:00〜21:00', mode:'rocket',
     blocks:2, block_fee:2500, count:28,
     sla_bonus:3000, sla_rate:100,
     perf_free1:5, perf_free2:10, perf_unit1:750, perf_tier_end:24, perf_unit2:500,
     vendor_per_case:50,
-    days:22, royalty:15, invoice_registered:true, fees:{vehicle:30000,maint:5500,ins:30000,admin:10000,rosai:1500,kamotsu:2000},
+    days:22, royalty:15, invoice_registered:true, fees:{vehicle:30000,ins:30000,admin:10000,rosai:1500,kamotsu:2000},
     note:'CP One Japan 発注書準拠｜受諾率95%以上が必須／ブロック内オンライン率30%未満は料金不払いの可能性あり' },
 ];
 
@@ -168,6 +168,8 @@ const DEFAULT_CASES = [
 function migrateCases(list) {
   const defRocket = DEFAULT_CASES.find(d => d.id === 'rocket');
   return list.map(c => {
+    // メンテナンスパック廃止：旧キャッシュに残る maint を除去
+    if (c.fees && 'maint' in c.fees) { c = Object.assign({}, c, { fees: Object.assign({}, c.fees) }); delete c.fees.maint; }
     if (c.mode !== 'rocket' || c.block_fee !== undefined) return c;
     return Object.assign({}, defRocket, {
       id: c.id, title: c.title, royalty: c.royalty, days: c.days,
@@ -184,7 +186,7 @@ let cases = (() => {
 
 persist(); // 移行結果を v3 に書き戻す
 
-const feeLabels = { vehicle:'車両代', maint:'メンテナンスパック', ins:'任意保険', admin:'事務手数料', rosai:'労災保険', kamotsu:'貨物保険' };
+const feeLabels = { vehicle:'車両代', ins:'任意保険', admin:'事務手数料', rosai:'労災保険', kamotsu:'貨物保険' };
 let activeId = cases[0].id;
 const fmt = n => Math.round(n).toLocaleString('ja-JP');
 
@@ -462,7 +464,7 @@ function renderForm(c) {
     return '';
   };
 
-  const defaultFee = k => k==='vehicle'?30000:k==='maint'?5500:k==='ins'?30000:k==='admin'?10000:k==='rosai'?1500:2000;
+  const defaultFee = k => k==='vehicle'?30000:k==='ins'?30000:k==='admin'?10000:k==='rosai'?1500:2000;
 
   form.innerHTML = `
     <h3>${isEdit ? '現場を編集' : '新しい現場を追加'}</h3>
