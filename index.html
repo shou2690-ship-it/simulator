@@ -271,7 +271,7 @@ function buildCard(c) {
     <div class="subtotal"><span>売上合計</span><span class="subtotal-value" id="${c.id}-revenue">—</span></div>
     <div class="row"><div class="label">ロイヤリティ(%)</div><div><input type="number" data-case="${c.id}" data-field="royalty" value="${c.royalty}" step="0.1"></div><div class="calc deduct" id="${c.id}-royalty-amt">—</div></div>
     <div class="subtotal"><span>ロイヤリティ調整後</span><span class="subtotal-value" id="${c.id}-after-royalty">—</span></div>
-    <div class="row" id="${c.id}-invoice-row" style="display:none;"><div class="label">インボイス未登録控除</div><div style="text-align:right;color:var(--text-dim);font-size:13px;">2%</div><div class="calc deduct" id="${c.id}-invoice-amt">—</div></div>
+    <div class="row" id="${c.id}-invoice-row" style="display:none;"><div class="label">インボイス未登録控除</div><div style="text-align:right;color:var(--text-dim);font-size:13px;">5%</div><div class="calc deduct" id="${c.id}-invoice-amt">—</div></div>
     <div class="divider"></div>
     ${feesHtml}
     <div class="total"><span class="total-label">稼働合計金額</span><span class="total-value" id="${c.id}-total">¥0<span class="yen"></span></span></div>`;
@@ -323,10 +323,10 @@ function calc(c) {
   const invoiceNote = document.getElementById(c.id + '-invoice-note');
   let invoiceDeduction = 0;
   if (!c.invoice_registered) {
-    invoiceDeduction = afterRoyalty * 0.02;
+    invoiceDeduction = afterRoyalty * 0.05;
     invoiceRow.style.display = 'grid';
     document.getElementById(c.id + '-invoice-amt').textContent = '−¥' + fmt(invoiceDeduction);
-    invoiceNote.textContent = '⚠ インボイス未登録のため 2% を控除';
+    invoiceNote.textContent = '⚠ インボイス未登録のため 5% を控除';
   } else {
     invoiceRow.style.display = 'none';
     invoiceNote.textContent = '';
