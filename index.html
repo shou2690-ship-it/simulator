@@ -217,11 +217,13 @@ function buildCard(c) {
       <div class="row head"><div>項目</div><div>単価/個数</div><div>金額</div></div>
       <div class="row"><div class="label">単価(円/個・税込)</div><div><input type="number" data-case="${c.id}" data-field="unit" value="${c.unit}"></div><div class="calc">—</div></div>
       <div class="row"><div class="label">1日の配完個数</div><div><input type="number" data-case="${c.id}" data-field="count" value="${c.count}"></div><div class="calc" id="${c.id}-perday">—</div></div>
-      <div class="row"><div class="label">稼働日数</div><div><input type="number" data-case="${c.id}" data-field="days" value="${c.days}"></div><div class="calc add" id="${c.id}-gross">—</div></div>`;
+      <div class="row"><div class="label">稼働日数</div><div><input type="number" data-case="${c.id}" data-field="days" value="${c.days}"></div><div class="calc add" id="${c.id}-gross">—</div></div>
+      <div class="row"><div class="label">特別インセンティブ(円/月)</div><div><input type="number" data-case="${c.id}" data-field="incentive" value="${c.incentive || 0}"></div><div class="calc add" id="${c.id}-incentive">—</div></div>`;
   } else if (c.mode === 'daily') {
     inputsHtml = `
       <div class="row head"><div>項目</div><div>日当/日数</div><div>金額</div></div>
       <div class="row"><div class="label">日当(円・税込)</div><div><input type="number" data-case="${c.id}" data-field="daily" value="${c.daily}"></div><div class="calc">—</div></div>
+      <div class="row"><div class="label">特別インセンティブ(円/日)</div><div><input type="number" data-case="${c.id}" data-field="incentive" value="${c.incentive || 0}"></div><div class="calc" id="${c.id}-incentive">—</div></div>
       <div class="row"><div class="label">稼働日数</div><div><input type="number" data-case="${c.id}" data-field="days" value="${c.days}"></div><div class="calc add" id="${c.id}-gross">—</div></div>`;
   } else if (c.mode === 'rocket') {
     inputsHtml = `
@@ -281,11 +283,18 @@ function buildCard(c) {
 function calc(c) {
   let revenue = 0;
   if (c.mode === 'piece') {
-    revenue = c.unit * c.count * c.days;
+    const pieceGross = c.unit * c.count * c.days;
+    // 特別インセンティブ（月額）はロイヤリティを引く前の売上に足す
+    const incentive  = c.incentive || 0;
+    revenue = pieceGross + incentive;
     document.getElementById(c.id + '-perday').textContent = '¥' + fmt(c.unit * c.count);
-    document.getElementById(c.id + '-gross').textContent  = '¥' + fmt(revenue);
+    document.getElementById(c.id + '-gross').textContent  = '¥' + fmt(pieceGross);
+    document.getElementById(c.id + '-incentive').textContent = '+¥' + fmt(incentive);
   } else if (c.mode === 'daily') {
-    revenue = c.daily * c.days;
+    // 特別インセンティブ（日額）は日当に上乗せして稼働日数を掛ける
+    const incentive = c.incentive || 0;
+    revenue = (c.daily + incentive) * c.days;
+    document.getElementById(c.id + '-incentive').textContent = incentive ? '日当計 ¥' + fmt(c.daily + incentive) : '—';
     document.getElementById(c.id + '-gross').textContent = '¥' + fmt(revenue);
   } else if (c.mode === 'rocket') {
     const blocks   = c.blocks === 1 ? 1 : 2;
@@ -543,7 +552,7 @@ function saveForm() {
 
   if (editingId) {
     const idx = cases.findIndex(x => x.id === editingId);
-    if (idx >= 0) { data.id = editingId; cases[idx] = data; }
+    if (idx >= 0) { data.id = editingId; if (cases[idx].incentive) data.incentive = cases[idx].incentive; cases[idx] = data; }
   } else {
     data.id = 'custom_' + Date.now();
     cases.push(data);
