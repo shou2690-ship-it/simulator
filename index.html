@@ -153,15 +153,8 @@ const DEFAULT_CASES = [
   { id:'yamato',      title:'ヤマト',        hours:'7:30〜20:00',             mode:'piece', unit:180,   count:150, days:22, royalty:15, invoice_registered:true, fees:{vehicle:30000,ins:33000,admin:10000,rosai:2000,kamotsu:1500} },
   { id:'askul',       title:'アスクル',      hours:'6:30〜16:00 or 18:00',    mode:'daily', daily:25000,          days:22, royalty:15, invoice_registered:true, fees:{vehicle:30000,ins:33000,admin:10000,rosai:1500,kamotsu:2000} },
   { id:'amazon',      title:'Amazon',       hours:'9:00〜19:00',             mode:'daily', daily:22000,          days:22, royalty:15, invoice_registered:true, fees:{vehicle:30000,ins:33000,admin:10000,rosai:1500,kamotsu:2000}, note:'9:00-12:30 Amazon / 13:00-15:10 hub / 15:30-19:00 Amazon / 19:30-22:00 hub' },
+  { id:'rakuten',     title:'楽天',         hours:'',                        mode:'daily', daily:24000,          days:22, royalty:15, invoice_registered:true, fees:{vehicle:30000,ins:33000,admin:10000,rosai:1500,kamotsu:2000} },
   { id:'sagawa_night',title:'佐川ナイト配',  hours:'17:00〜20:00',            mode:'piece', unit:90,    count:30,  days:22, royalty:15, invoice_registered:true, fees:{vehicle:30000,ins:33000,admin:10000,rosai:1500,kamotsu:2000} },
-  { id:'amazon_hub',  title:'Amazon hub',   hours:'〜23:59',                 mode:'daily', daily:5000,           days:22, royalty:0,  invoice_registered:true, fees:{vehicle:0,ins:0,admin:0,rosai:0,kamotsu:0} },
-  { id:'rocket',      title:'ロケットナウ',  hours:'A1 11:00〜15:00 / B1 17:00〜21:00', mode:'rocket',
-    blocks:2, block_fee:2500, count:28,
-    sla_bonus:3000, sla_rate:100,
-    perf_free1:5, perf_free2:10, perf_unit1:750, perf_tier_end:24, perf_unit2:500,
-    vendor_per_case:50,
-    days:22, royalty:15, invoice_registered:true, fees:{vehicle:30000,ins:33000,admin:10000,rosai:1500,kamotsu:2000},
-    note:'CP One Japan 発注書準拠｜受諾率95%以上が必須／ブロック内オンライン率30%未満は料金不払いの可能性あり' },
 ];
 
 // 旧バージョン(v2)の rocket は推測値構造だったため、契約準拠の新構造で置き換える
@@ -194,6 +187,16 @@ try {
       if (c.id === 'amazon' && c.daily === 30000) c.daily = 22000;
     });
     localStorage.setItem(DEFAULTS_REV_KEY, '2');
+  }
+  // rev3（2026-11-07）: Amazon hub・ロケットナウを外し、楽天を追加。保存済みのブラウザにも1回だけ当てる
+  if ((parseInt(localStorage.getItem(DEFAULTS_REV_KEY), 10) || 0) < 3) {
+    cases = cases.filter(c => c.id !== 'amazon_hub' && c.id !== 'rocket');
+    if (!cases.some(c => c.id === 'rakuten')) {
+      const rakuten = JSON.parse(JSON.stringify(DEFAULT_CASES.find(d => d.id === 'rakuten')));
+      const at = cases.findIndex(c => c.id === 'amazon');
+      cases.splice(at >= 0 ? at + 1 : cases.length, 0, rakuten);
+    }
+    localStorage.setItem(DEFAULTS_REV_KEY, '3');
   }
 } catch(e) {}
 
